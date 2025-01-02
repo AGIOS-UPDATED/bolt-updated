@@ -42,7 +42,7 @@ export function Header() {
           {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
           {/* <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
           <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" /> */}
-          <h1>Updated.com</h1>
+          <h1 className='font-mono'>Updated.com</h1>
           {/* <BoltLogo /> */}
         </a>
       </div>
