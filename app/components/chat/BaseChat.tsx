@@ -15,6 +15,7 @@ import { SendButton } from './SendButton.client';
 import { APIKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { CryptoMessageHandler } from '~/lib/agents/CryptoMessageHandler';
 
 import styles from './BaseChat.module.scss';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
@@ -67,26 +68,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       showChat = true,
       chatStarted = false,
       isStreaming = false,
+      messages = [],
+      description,
+      enhancingPrompt = false,
+      promptEnhanced = false,
+      input = '',
       model,
       setModel,
       provider,
       setProvider,
-      providerList,
-      input = '',
-      enhancingPrompt,
-      handleInputChange,
-      promptEnhanced,
-      enhancePrompt,
-      sendMessage,
+      providerList = PROVIDER_LIST,
       handleStop,
+      sendMessage,
+      handleInputChange,
+      enhancePrompt,
       importChat,
       exportChat,
       uploadedFiles = [],
       setUploadedFiles,
       imageDataList = [],
       setImageDataList,
-      messages,
-    },
+    }: BaseChatProps,
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
@@ -106,9 +108,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     });
     const [modelList, setModelList] = useState(MODEL_LIST);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
-    const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+    const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
+    const [cryptoHandler] = useState(new CryptoMessageHandler(
+      process.env.PROVIDER_URL || '',
+      process.env.MARKET_API_KEY || ''
+    ));
 
     useEffect(() => {
       console.log(transcript);
@@ -201,8 +207,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
-    const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
+    const handleSendMessage = async (event: React.UIEvent, messageInput?: string) => {
       if (sendMessage) {
+        const message = messageInput || input;
+        
+        // Try processing as a crypto command first
+        const cryptoResponse = await cryptoHandler.processMessage(message);
+        if (cryptoResponse) {
+          // Add user message
+          const userMessage: Message = {
+            id: Date.now().toString(),
+            role: 'user',
+            content: message
+          };
+          
+          // Update messages with both user input and crypto response
+          messages.push(userMessage, cryptoResponse);
+          return;
+        }
+        
+        // If not a crypto command, process normally
         sendMessage(event, messageInput);
 
         if (recognition) {
